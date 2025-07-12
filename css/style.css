@@ -1,0 +1,67 @@
+:root{
+  --color-bg: #ffffff;
+  --color-black: #000;
+  
+  --transition-duration: 0.2s;
+  --container-width: 1240px;
+  --container-padding-x: 20px;
+  --section-padding-y: 20px;
+
+  --font-family: 'Space Grotesk', sans-serif;
+  --font-basic: 20px;
+  --font-small: 14px;
+
+}
+
+.container {
+  max-width: calc(var(--container-width) + var(--container-padding-x) * 2);
+  margin-inline: auto;
+  padding-inline: var(--container-padding-x);
+}
+
+.section {
+  padding-block: var(--section-padding-y);
+}
+
+main {
+  /* height: 100vh; */
+  height: calc(var(--vh, 1vh) * 100);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+body{
+  background-color: var(--color-bg);
+  font-family: var(--font-family);
+  color: var(--color-black);
+  font-size: var(--font-basic);
+  line-height: 1.5;
+}
+html, body {
+  padding: 0;
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+}
+h1, h2, h3, h4, h5, h6{
+  font-weight: 600;
+}
+
+li {
+  display: flex;
+}
+
+a, button, input{
+  transition-duration: var(--transition-duration);
+}
+.game-window {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+
+canvas {
+  display: block;
+}
