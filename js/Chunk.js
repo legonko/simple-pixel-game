@@ -268,38 +268,103 @@ export class Chunk {
     this.chunkY = chunkY;
     this.noise = noise;
     [this.tiles, this.objects] = this.generateLayers();
-    // console.log(this.tiles)
     this.tilemapGrass = new Image();
     this.tilemapGrass.src = "../assets/sprites/grass.png"
-    this.tilemap = new Image();
-    this.tilemap.src = "../assets/sprites/dirt.png"
+    this.tilemapMain = new Image();
+    this.tilemapMain.src = "../assets/sprites/tilemapMain.png"
+    this.tilemapJungleGrass = new Image();
+    this.tilemapJungleGrass.src = "../assets/sprites/jungleGrass.png"
+    this.tilemapSavannaGrass = new Image();
+    this.tilemapSavannaGrass.src = "../assets/sprites/savannaGrass.png"
+    this.tilemapSnow = new Image();
+    this.tilemapSnow.src = "../assets/sprites/snow.png"
+    this.tilemapSwampGrass = new Image();
+    this.tilemapSwampGrass.src = "../assets/sprites/swampGrass.png"
+    this.tilemapTaigaGrass = new Image();
+    this.tilemapTaigaGrass.src = "../assets/sprites/taigaGrass.png"
   }
 
   generateLayers() {
     const tiles = [];
     const objects = [];
-    const scale = 0.02;
+    const biomeScale = 0.05;
+    const heightScale = 0.05;
+    const detailScale = 0.01;
+    const tempScale = 0.01;
+    const moistureScale = 0.01;
+
+    const tempVals = [];
+    const moisVals = [];
+    const elevVals = [];
+
+    // const noiseData = {
+    //   biome: [],
+    //   height: [],
+    //   detail: [],
+    //   temp: [],
+    //   equalizedBiome: [],
+    //   equalizedHeight: [],
+    //   equalizedDetail: [],
+    //   equalizedTemp: []
+    // };
 
     for (let y = 0; y < CHUNK_SIZE; y++) {
-      const row = []
       for (let x = 0; x < CHUNK_SIZE; x++){
         const worldX = this.chunkX * CHUNK_SIZE + x;
         const worldY = this.chunkY * CHUNK_SIZE + y;
-        const n = this.noise.perlin2(worldX * scale, worldY * scale);
-        row.push(new Tile(n));
 
-        // if (n > 0.0 && Math.random() < 0.01) {
-        //   objects.push(new Bush(x, y));
-        // }
+        const biomeNoise  =    this.noise.simplex2(worldX * biomeScale, worldY * biomeScale);
+        const heightNoise =    this.noise.simplex2(worldX * heightScale, worldY * heightScale);
+        const detailNoise =    this.noise.simplex2(worldX * detailScale, worldY * detailScale);
+        const moisturelNoise = this.noise.simplex2(worldX * moistureScale, worldY * moistureScale);
+        const tempNoise =      this.noise.simplex2(worldX * tempScale, worldY * tempScale); // + 10000
+
+        const elevation = heightNoise * 0.7 + detailNoise * 0.3;
+        const moisture = moisturelNoise; // (biomeNoise + detailNoise * 0.2) / 1.2;
+        const temperature = tempNoise; //* 0.9 + detailNoise * 0.1;
+
+        elevVals.push(elevation);
+        moisVals.push(moisture);
+        tempVals.push(temperature);
+      }
+    }
+
+    const [equalizedTemp, equalizedMoisture] = equalize2D(tempVals, moisVals);
+
+    let index = 0;
+    for (let y = 0; y < CHUNK_SIZE; y++) {
+      const row = []
+      for (let x = 0; x < CHUNK_SIZE; x++){
+        const tile = new Tile(elevVals[index], equalizedMoisture[index], equalizedTemp[index]);
+        index++;
+        row.push(tile);
       }
       tiles.push(row);
     }
+    // this.saveNoiseData(noiseData);
     return [tiles, objects]
+  }
+
+  saveNoiseData(data) {
+    const jsonData = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonData], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+
+    a.href = url;
+    a.download = `noise_data_${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+    document.body.appendChild(a);
+    a.click();
+
+    setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, 100);
   }
 
   getTileNeighborData(x, y, type, gameMap) {
     let bitmask = 0;
-    let primaryNeighborType = "";
+    let primaryNeighbor = "";
 
     const globalX = this.chunkX * CHUNK_SIZE + x;
     const globalY = this.chunkY * CHUNK_SIZE + y;
@@ -324,38 +389,40 @@ export class Chunk {
         if (neighborTile.type === type) {
           bitmask |= bit;
         }
-        else if (!primaryNeighborType) {
-          primaryNeighborType = neighborTile.type;
+        else if (!primaryNeighbor) {
+          primaryNeighbor = neighborTile;
         }
       }
     }
     this.tiles[y][x].setBitmask(bitmask);
 
-    return [bitmask, primaryNeighborType]
+    return [bitmask, primaryNeighbor]
   }
 
   getTileType(x, y) {
     return this.tiles[y][x].type
   }
 
-  drawTile(ctx, x, y, sx, sy, screenX, screenY, type, neighborType) {
+  drawTile(ctx, x, y, sx, sy, nsx, nsy, screenX, screenY, type, neighborType, layerLevel) {
     const tilemaps = {
-      water: this.tilemap,
-      grass: this.tilemapGrass,
-      sand:  this.tilemap,
-      forest: this.tilemap,
-    };
-    const spritesXY = {
-      sand:   [0, 1],
-      forest: [1, 0],
-      water:  [3, 0]
+      ice: this.tilemapMain,
+      deep_water: this.tilemapMain,
+      water: this.tilemapMain,
+      tundra: this.tilemapSnow,
+      mountain: this.tilemapMain,
+      desert: this.tilemapMain,
+      swamp: this.tilemapSwampGrass,
+      forest: this.tilemapGrass,
+      taiga: this.tilemapTaigaGrass,
+      prairie: this.tilemapMain,
+      savanna: this.tilemapSavannaGrass,
+      jungle: this.tilemapJungleGrass,
     };
 
     const currTilemap = tilemaps[type];
 
-    if (neighborType && type === "grass") {
+    if (neighborType && layerLevel === 1) {
       const neighborTilemap = tilemaps[neighborType];
-      const [nsx, nsy] = spritesXY[neighborType];
 
       ctx.drawImage(neighborTilemap, 
                   SOURCE_TILE_SIZE * nsx,
@@ -379,23 +446,38 @@ export class Chunk {
   
   renderChunk(ctx, screenX, screenY, gameMap) {
     ctx.imageSmoothingEnabled = false;
+    
     const spritesXY = {
-      sand:   [0, 1],
-      forest: [1, 0],
-      water:  [3, 0]
+      ice: [2, 0],
+      deep_water: [4, 0],
+      water:  [3, 0],
+      mountain: [6, 0],
+      desert: [0, 0],
+      swamp: [1, 2],
+      prairie: [0, 1],
+      tundra: [1, 6],
+      forest: [1, 1],
+      taiga: [1, 1],
+      savanna: [1, 1],
+      jungle: [1,1],
     };
+
     let bitmask = 0;
     let underTile = "";
     let [sx, sy] = [0, 0];
+    let [nsx, nsy] = [0, 0];
 
     for (let y = 0; y < CHUNK_SIZE; y++) {
       for (let x = 0; x < CHUNK_SIZE; x++) {
         const tile = this.tiles[y][x];
 
-        if (tile.type === "grass") {
+        if (tile.layerLevel === 1) {
           [bitmask, underTile] = this.getTileNeighborData(x, y, tile.type, gameMap);
-          [sx, sy] = bitmaskLayout[bitmask];
-        }
+          [sx, sy] = underTile.layerLevel === 1 ? spritesXY[tile.type] : bitmaskLayout[bitmask];
+          if (underTile.type) {
+            [nsx, nsy] = spritesXY[underTile.type];
+          } 
+        } // check all neighbors, they all must be 1 lvl
         else {     
           [sx, sy] = spritesXY[tile.type];
         }
@@ -403,13 +485,92 @@ export class Chunk {
         this.drawTile(ctx,
           x, y, 
           sx, sy,
+          nsx, nsy,
           screenX, screenY,
           tile.type,
-          underTile);
+          underTile.type,
+          tile.layerLevel
+          );
 
       }
     }
 
     // this.objects.map((obj) => obj.render(ctx, screenX, screenY))
   }
+}
+
+function equalizeHistogram(data, bins = 256) {
+  const histogram = new Array(bins).fill(0);
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  
+  data.forEach(value => {
+      const bin = Math.floor(((value - min) / (max - min)) * (bins - 1));
+      histogram[bin]++;
+  });
+
+  const cdf = [];
+  let sum = 0;
+  for (let i = 0; i < histogram.length; i++) {
+      sum += histogram[i];
+      cdf[i] = sum;
+  }
+
+  const cdfMin = Math.min(...cdf.filter(v => v > 0));
+  const cdfMax = cdf[cdf.length - 1];
+
+  return data.map(value => {
+      const bin = Math.floor(((value - min) / (max - min)) * (bins - 1));
+      return (cdf[bin] - cdfMin) / (cdfMax - cdfMin) * (max - min) + min;
+  });
+}
+
+function equalize2D(tempArray, moistureArray, bins = 32) {
+  const size = tempArray.length;
+  const data = [];
+
+  let minTemp = Math.min(...tempArray);
+  let maxTemp = Math.max(...tempArray);
+  let minMoist = Math.min(...moistureArray);
+  let maxMoist = Math.max(...moistureArray);
+
+  for (let i = 0; i < size; i++) {
+    const tempNorm = (tempArray[i] - minTemp) / (maxTemp - minTemp);
+    const moistNorm = (moistureArray[i] - minMoist) / (maxMoist - minMoist);
+    data.push([tempNorm, moistNorm]);
+  }
+
+  const hist = Array.from({ length: bins }, () => new Array(bins).fill(0));
+  for (const [t, m] of data) {
+    const x = Math.min(Math.floor(t * bins), bins - 1);
+    const y = Math.min(Math.floor(m * bins), bins - 1);
+    hist[x][y]++;
+  }
+
+  const cdf = Array.from({ length: bins }, () => new Array(bins).fill(0));
+  let cumulative = 0;
+  for (let i = 0; i < bins; i++) {
+    for (let j = 0; j < bins; j++) {
+      cumulative += hist[i][j];
+      cdf[i][j] = cumulative;
+    }
+  }
+
+  const total = cumulative;
+  const newTemp = [];
+  const newMoisture = [];
+
+  for (const [t, m] of data) {
+    const x = Math.min(Math.floor(t * bins), bins - 1);
+    const y = Math.min(Math.floor(m * bins), bins - 1);
+
+    const normalized = cdf[x][y] / total;
+
+    const newT = normalized * (maxTemp - minTemp) + minTemp;
+    const newM = normalized * (maxMoist - minMoist) + minMoist;
+
+    newTemp.push(newT);
+    newMoisture.push(newM);
+  }
+  return [newTemp, newMoisture];
 }

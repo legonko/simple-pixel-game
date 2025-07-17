@@ -2,3 +2,8 @@ example_objects.png
 16x16.png
 character3.png
 /node_modules
+*.txt
+*.md
+биомы.png
+*.json
+test*

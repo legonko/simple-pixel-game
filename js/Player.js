@@ -4,7 +4,7 @@ export class Player {
   constructor(x, y) {
     this.x = x; // global coordinates in tiles
     this.y = y;
-    this.speed = 3;
+    this.speed = 5; //3
     this.orientation = "down";
     this.isMoving = false;
     this.frame = 0
@@ -17,12 +17,6 @@ export class Player {
 
   getSprites() {
     // orientation: [idle, walk1, walk2] - indices on spritesheet
-    // const sprites = {
-    //   up:    [[2, 0], [5, 0], [8, 0]],
-    //   down:  [[0, 0], [3, 0], [6, 0]],
-    //   left:  [[1, 0], [4, 0], [7, 0]],
-    //   right: [[0, 1], [1, 1], [2, 1]]
-    // }
     const sprites = {
       up:    [[3, 0], [3, 1], [3, 2]],
       down:  [[0, 0], [0, 1], [0, 2]],

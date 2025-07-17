@@ -1,10 +1,10 @@
 import { Game } from './Game.js';
-import { CHUNK_SIZE, RENDER_TILE_SIZE } from './config.js';
+import { CHUNK_SIZE, RENDER_TILE_SIZE, SOURCE_TILE_SIZE } from './config.js';
 
 
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
-const canvasSize = CHUNK_SIZE * RENDER_TILE_SIZE
+const canvasSize = CHUNK_SIZE * SOURCE_TILE_SIZE;
 canvas.width = canvasSize + parseInt(canvasSize / 2);
 canvas.height = canvasSize + parseInt(canvasSize / 3);
 let keys = {};
