@@ -45,6 +45,18 @@ export class Player {
                   RENDER_TILE_SIZE * 2, 
                   RENDER_TILE_SIZE * 2
                   );
+    ctx.fillStyle = 'red';
+    ctx.fillRect(
+      this.x* RENDER_TILE_SIZE - cameraX, 
+      this.y* RENDER_TILE_SIZE - cameraY, 
+      4, 4
+    );
+    ctx.fillStyle = 'blue';
+    ctx.fillRect(
+      screenX,
+      screenY,
+      4, 4
+    );
   }
 
   update(dt, input, gameMap) {

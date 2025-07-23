@@ -287,11 +287,12 @@ export class Chunk {
   generateLayers() {
     const tiles = [];
     const objects = [];
-    const biomeScale = 0.05;
+    const objectsBinMap = [];
+    // const biomeScale = 0.05;
     const heightScale = 0.05;
     const detailScale = 0.01;
-    const tempScale = 0.01;
-    const moistureScale = 0.01;
+    const tempScale = 0.006;
+    const moistureScale = 0.008;
 
     const tempVals = [];
     const moisVals = [];
@@ -309,11 +310,12 @@ export class Chunk {
     // };
 
     for (let y = 0; y < CHUNK_SIZE; y++) {
+      objectsBinMap[y] = []
       for (let x = 0; x < CHUNK_SIZE; x++){
         const worldX = this.chunkX * CHUNK_SIZE + x;
         const worldY = this.chunkY * CHUNK_SIZE + y;
 
-        const biomeNoise  =    this.noise.simplex2(worldX * biomeScale, worldY * biomeScale);
+        // const biomeNoise  =    this.noise.simplex2(worldX * biomeScale, worldY * biomeScale);
         const heightNoise =    this.noise.simplex2(worldX * heightScale, worldY * heightScale);
         const detailNoise =    this.noise.simplex2(worldX * detailScale, worldY * detailScale);
         const moisturelNoise = this.noise.simplex2(worldX * moistureScale, worldY * moistureScale);
@@ -326,6 +328,8 @@ export class Chunk {
         elevVals.push(elevation);
         moisVals.push(moisture);
         tempVals.push(temperature);
+
+        objectsBinMap[y][x] = false;
       }
     }
 
@@ -338,33 +342,21 @@ export class Chunk {
         const tile = new Tile(elevVals[index], equalizedMoisture[index], equalizedTemp[index]);
         index++;
         row.push(tile);
+        if (Math.random() < 0.01 && !objectsBinMap[y][x] && x < CHUNK_SIZE - 2 && y < CHUNK_SIZE - 2) {
+          const bush = new Bush(x, y);
+          objects.push(bush);
+          setSubArray(objectsBinMap, y, y + bush.spriteHeight, x, x + bush.spriteWidth, true);
+        }
       }
       tiles.push(row);
     }
-    // this.saveNoiseData(noiseData);
+    // saveNoiseData(noiseData);
     return [tiles, objects]
   }
 
-  saveNoiseData(data) {
-    const jsonData = JSON.stringify(data, null, 2);
-    const blob = new Blob([jsonData], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-
-    a.href = url;
-    a.download = `noise_data_${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
-    document.body.appendChild(a);
-    a.click();
-
-    setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }, 100);
-  }
-
-  getTileNeighborData(x, y, type, gameMap) {
+  getTileNeighborData(x, y, gameMap) {
     let bitmask = 0;
-    let primaryNeighbor = "";
+    let neighbors = [];
 
     const globalX = this.chunkX * CHUNK_SIZE + x;
     const globalY = this.chunkY * CHUNK_SIZE + y;
@@ -384,26 +376,32 @@ export class Chunk {
       const nx = globalX + dx;
       const ny = globalY + dy;
       const neighborTile = gameMap.getTileAt(nx, ny);
+      neighbors.push(neighborTile);
 
       if (neighborTile) {
-        if (neighborTile.type === type) {
+        if (neighborTile.layerLevel === 1) {
           bitmask |= bit;
-        }
-        else if (!primaryNeighbor) {
-          primaryNeighbor = neighborTile;
         }
       }
     }
     this.tiles[y][x].setBitmask(bitmask);
 
-    return [bitmask, primaryNeighbor]
+    return [bitmask, neighbors]
+  }
+
+  getRenderableObjects() {
+    return this.objects.map(obj => ({
+      type: 'object',
+      entity: obj,
+      sortY: this.chunkY * CHUNK_SIZE + obj.y + obj.spriteHeight - 0.5
+    }));
   }
 
   getTileType(x, y) {
     return this.tiles[y][x].type
   }
 
-  drawTile(ctx, x, y, sx, sy, nsx, nsy, screenX, screenY, type, neighborType, layerLevel) {
+  drawTile(ctx, x, y, sx, sy, nsx, nsy, screenOffsetX, screenOffsetY, type, neighborType, layerLevel) {
     const tilemaps = {
       ice: this.tilemapMain,
       deep_water: this.tilemapMain,
@@ -428,8 +426,8 @@ export class Chunk {
                   SOURCE_TILE_SIZE * nsx,
                   SOURCE_TILE_SIZE * nsy,
                   SOURCE_TILE_SIZE, SOURCE_TILE_SIZE, 
-                  Math.floor(x * RENDER_TILE_SIZE + screenX), 
-                  Math.floor(y * RENDER_TILE_SIZE + screenY), 
+                  Math.floor(x * RENDER_TILE_SIZE + screenOffsetX), 
+                  Math.floor(y * RENDER_TILE_SIZE + screenOffsetY), 
                   RENDER_TILE_SIZE, 
                   RENDER_TILE_SIZE);
     };
@@ -438,13 +436,13 @@ export class Chunk {
                   SOURCE_TILE_SIZE * sx,
                   SOURCE_TILE_SIZE * sy, 
                   SOURCE_TILE_SIZE, SOURCE_TILE_SIZE,
-                  Math.floor(x * RENDER_TILE_SIZE + screenX), 
-                  Math.floor(y * RENDER_TILE_SIZE + screenY), 
+                  Math.floor(x * RENDER_TILE_SIZE + screenOffsetX), 
+                  Math.floor(y * RENDER_TILE_SIZE + screenOffsetY), 
                   RENDER_TILE_SIZE, 
                   RENDER_TILE_SIZE);
   }
   
-  renderChunk(ctx, screenX, screenY, gameMap) {
+  renderChunk(ctx, screenOffsetX, screenOffsetY, gameMap) {
     ctx.imageSmoothingEnabled = false;
     
     const spritesXY = {
@@ -453,9 +451,9 @@ export class Chunk {
       water:  [3, 0],
       mountain: [6, 0],
       desert: [0, 0],
-      swamp: [1, 2],
+      swamp: [1, 1],
       prairie: [0, 1],
-      tundra: [1, 6],
+      tundra: [1, 1],
       forest: [1, 1],
       taiga: [1, 1],
       savanna: [1, 1],
@@ -463,7 +461,8 @@ export class Chunk {
     };
 
     let bitmask = 0;
-    let underTile = "";
+    let neighbors = [];
+    let neighborType = "";
     let [sx, sy] = [0, 0];
     let [nsx, nsy] = [0, 0];
 
@@ -472,57 +471,39 @@ export class Chunk {
         const tile = this.tiles[y][x];
 
         if (tile.layerLevel === 1) {
-          [bitmask, underTile] = this.getTileNeighborData(x, y, tile.type, gameMap);
-          [sx, sy] = underTile.layerLevel === 1 ? spritesXY[tile.type] : bitmaskLayout[bitmask];
-          if (underTile.type) {
-            [nsx, nsy] = spritesXY[underTile.type];
-          } 
-        } // check all neighbors, they all must be 1 lvl
+          [bitmask, neighbors] = this.getTileNeighborData(x, y, gameMap);
+          const sumLevels = neighbors.reduce((accumulator, obj) => {
+            return accumulator + obj?.layerLevel;
+          }, 0);
+
+          [sx, sy] = sumLevels === 8 ? spritesXY[tile.type] : bitmaskLayout[bitmask];
+          for (let neighbor of neighbors) {
+            if (neighbor?.type && neighbor?.layerLevel === 0) {
+              [nsx, nsy] = spritesXY[neighbor.type];
+              neighborType = neighbor.type;
+            } 
+          }
+        }
         else {     
           [sx, sy] = spritesXY[tile.type];
         }
 
         this.drawTile(ctx,
-          x, y, 
-          sx, sy,
-          nsx, nsy,
-          screenX, screenY,
-          tile.type,
-          underTile.type,
-          tile.layerLevel
-          );
-
+                      x, y, 
+                      sx, sy,
+                      nsx, nsy,
+                      screenOffsetX, screenOffsetY,
+                      tile.type,
+                      neighborType,
+                      tile.layerLevel
+                      );
       }
     }
-
-    // this.objects.map((obj) => obj.render(ctx, screenX, screenY))
-  }
-}
-
-function equalizeHistogram(data, bins = 256) {
-  const histogram = new Array(bins).fill(0);
-  const min = Math.min(...data);
-  const max = Math.max(...data);
-  
-  data.forEach(value => {
-      const bin = Math.floor(((value - min) / (max - min)) * (bins - 1));
-      histogram[bin]++;
-  });
-
-  const cdf = [];
-  let sum = 0;
-  for (let i = 0; i < histogram.length; i++) {
-      sum += histogram[i];
-      cdf[i] = sum;
   }
 
-  const cdfMin = Math.min(...cdf.filter(v => v > 0));
-  const cdfMax = cdf[cdf.length - 1];
-
-  return data.map(value => {
-      const bin = Math.floor(((value - min) / (max - min)) * (bins - 1));
-      return (cdf[bin] - cdfMin) / (cdfMax - cdfMin) * (max - min) + min;
-  });
+  renderObjects(ctx, screenOffsetX, screenOffsetY) {
+    this.objects.map((obj) => obj.render(ctx, screenOffsetX, screenOffsetY))
+  }
 }
 
 function equalize2D(tempArray, moistureArray, bins = 32) {
@@ -573,4 +554,29 @@ function equalize2D(tempArray, moistureArray, bins = 32) {
     newMoisture.push(newM);
   }
   return [newTemp, newMoisture];
+}
+
+function setSubArray(array, startRow, stopRow, startCol, stopCol, value) {
+  for (let i = startRow; i < stopRow; i++) {
+    for (let j = startCol; j < stopCol; j++) {
+      array[i][j] = value;
+    }
+  }
+}
+
+function saveNoiseData(data) {
+  const jsonData = JSON.stringify(data, null, 2);
+  const blob = new Blob([jsonData], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+
+  a.href = url;
+  a.download = `noise_data_${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+  document.body.appendChild(a);
+  a.click();
+
+  setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+  }, 100);
 }

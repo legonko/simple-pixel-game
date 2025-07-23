@@ -18,7 +18,7 @@ export class GameMap extends Map {
 
   getChunk(chunkX, chunkY) {
     const key = `${chunkX},${chunkY}`;
-    return this.get(key)
+    return this.get(key);
   }
 
   getTileAt(tileX, tileY) {
@@ -30,7 +30,6 @@ export class GameMap extends Map {
   
     const chunk = this.getChunk(chunkX, chunkY);
     // console.log(chunk.tiles)
-  
     if (!chunk) return null;
   
     return chunk.tiles[localY][localX];
@@ -39,13 +38,13 @@ export class GameMap extends Map {
   calculateVisibleChunkXY(cameraX, cameraY, canvas) {
     const pixelsPerChunk = CHUNK_SIZE * RENDER_TILE_SIZE;
 
-    const screenChunkStartX = Math.floor(cameraX / pixelsPerChunk) - 1; // раньше умножалось на тайлсайз
-    const screenChunkStartY = Math.floor(cameraY / pixelsPerChunk) - 1; //  тут
+    const screenChunkStartX = Math.floor(cameraX / pixelsPerChunk) - 1;
+    const screenChunkStartY = Math.floor(cameraY / pixelsPerChunk) - 1;
   
-    const screenChunkEndX = Math.floor((cameraX + canvas.width) / pixelsPerChunk) + 1; //  тут
-    const screenChunkEndY = Math.floor((cameraY + canvas.height) / pixelsPerChunk) + 1; //  тут
+    const screenChunkEndX = Math.floor((cameraX + canvas.width) / pixelsPerChunk) + 1;
+    const screenChunkEndY = Math.floor((cameraY + canvas.height) / pixelsPerChunk) + 1;
 
-    return [screenChunkStartX, screenChunkStartY, screenChunkEndX, screenChunkEndY]
+    return [screenChunkStartX, screenChunkStartY, screenChunkEndX, screenChunkEndY];
   }
 
   createMapLayout(cameraX, cameraY, canvas) {
@@ -61,8 +60,10 @@ export class GameMap extends Map {
     }
   }
 
-  renderMap(cameraX, cameraY) {
+  renderMap(cameraX, cameraY, player) {
     this.ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const renderList = [];
 
     const [screenChunkStartX, 
           screenChunkStartY, 
@@ -74,12 +75,45 @@ export class GameMap extends Map {
         const worldPixelX = chunkX * CHUNK_SIZE * RENDER_TILE_SIZE;
         const worldPixelY = chunkY * CHUNK_SIZE * RENDER_TILE_SIZE;
   
-        const screenX = worldPixelX - cameraX; //  тут
-        const screenY = worldPixelY - cameraY; //  тут
+        const screenY = worldPixelY - cameraY;
+        const screenX = worldPixelX - cameraX;
         
         const chunk = this.getChunk(chunkX, chunkY);
         chunk.renderChunk(this.ctx, screenX, screenY, this);
+        // chunk.renderObjects(this.ctx, screenX, screenY);
+
+        renderList.push(...chunk.getRenderableObjects().map(obj => ({
+          ...obj,
+          screenX,
+          screenY
+        })));
       }
     }
-  }
+
+    renderList.push({
+      type: 'player',
+      entity: player,
+      sortY: player.y,
+      screenX: 0,
+      screenY: 0
+    })
+
+    renderList.sort((a, b) => {
+      // Сначала сравниваем по Y
+      if (a.sortY !== b.sortY) return a.sortY - b.sortY;
+      
+      // Если Y одинаковый, игрок должен быть ПЕРЕД объектами
+      return a.type === 'player' ? -1 : 1;
+    });
+    // console.log('0',renderList[0])
+
+    renderList.forEach(item => {
+      if (item.type === "player") {
+        item.entity.renderPlayer(this.ctx, cameraX, cameraY);
+      }
+      else {
+        item.entity.render(this.ctx, item.screenX, item.screenY);
+      }
+    });
+  } 
 }

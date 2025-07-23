@@ -12,35 +12,41 @@ export class GameObject {
 
   }
 
-  render(ctx, cameraX, cameraY) {
+  render(ctx, screenOffsetX, screenOffsetY) {
+    ctx.drawImage(this.spritesheet,
+      this.spritePosX * SOURCE_TILE_SIZE, // sx
+      this.spritePosY * SOURCE_TILE_SIZE, // sy
+      this.spriteWidth  * SOURCE_TILE_SIZE, //sw
+      this.spriteHeight * SOURCE_TILE_SIZE, // sh
+      Math.floor(this.x * RENDER_TILE_SIZE + screenOffsetX), // pos x
+      Math.floor(this.y * RENDER_TILE_SIZE + screenOffsetY), // pos y
+      RENDER_TILE_SIZE * this.spriteWidth, 
+      RENDER_TILE_SIZE * this.spriteHeight
+      );
 
+      // ctx.fillStyle = 'red';
+      // ctx.fillRect(
+      //   this.x* RENDER_TILE_SIZE - cameraX, 
+      //   this.y* RENDER_TILE_SIZE - cameraY, 
+      //   4, 4
+      // );
+      ctx.fillStyle = 'black';
+      ctx.fillRect(
+        this.x * RENDER_TILE_SIZE + screenOffsetX,
+        (this.y + this.spriteHeight) * RENDER_TILE_SIZE + screenOffsetY,
+        4, 4
+      );
   }
 }
 
 export class Bush extends GameObject {
   constructor(x, y) {
     super(x, y);
-    this.spriteWidth = 3 * SOURCE_TILE_SIZE;
-    this.spriteHeight = 2 * SOURCE_TILE_SIZE;
+    this.spriteWidth = 2; // in tiles
+    this.spriteHeight = 2;
+    this.spritePosX = 2; // position on the spritesheet
+    this.spritePosY = 0;
     this.solid = false;
     this.coverPlayer = true;
   }
-
-  render(ctx, cameraX, cameraY) {
-    const screenX = this.x * RENDER_TILE_SIZE + cameraX; // actually it is screenX
-    const screenY = this.y * RENDER_TILE_SIZE + cameraY;
-
-    ctx.drawImage(this.spritesheet,
-                  0, 0, // sx, sy
-                  this.spriteWidth, this.spriteHeight, // sw, sh
-                  Math.floor(screenX), // pos x
-                  Math.floor(screenY), // pos y
-                  this.spriteWidth, 
-                  this.spriteHeight
-                  );
-  }
 }
-
-// сделать что-то типа бинмапы досутпности спавна объекта
-// ставим куст - помечаем занятые клетки, ставим новый куст - проверяем занято
-// или нет - ставим если свободно
