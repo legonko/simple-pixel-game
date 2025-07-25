@@ -1,5 +1,5 @@
 import { CHUNK_SIZE, RENDER_TILE_SIZE, SOURCE_TILE_SIZE } from "./config.js";
-import { Bush } from "./GameObject.js";
+import { Bush, Rock, SmallLeave, SmallRock } from "./GameObject.js";
 import { Tile } from './Tile.js';
 
 
@@ -262,33 +262,47 @@ const bitmaskLayout = {
   129: [3, 3],
 }
 
+const ObjectFactory = {
+  create(type, x, y) {
+    switch(type) {
+      case 'bush': return new Bush(x, y);
+      case 'rock': return new Rock(x, y);
+      case 'smallRock': return new SmallRock(x, y);
+      case 'smallLeave': return new SmallLeave(x, y);
+      default: throw new Error('Unknown object type');
+    }
+  }
+};
+
 export class Chunk {
   constructor(chunkX, chunkY, noise) {
     this.chunkX = chunkX;
     this.chunkY = chunkY;
     this.noise = noise;
-    [this.tiles, this.objects] = this.generateLayers();
+    [this.tiles, this.objects, this.bgObjects, this.obstaclesBinMap] = this.generateLayers();
     this.tilemapGrass = new Image();
-    this.tilemapGrass.src = "../assets/sprites/grass.png"
+    this.tilemapGrass.src = "../assets/sprites/grass.png";
     this.tilemapMain = new Image();
-    this.tilemapMain.src = "../assets/sprites/tilemapMain.png"
+    this.tilemapMain.src = "../assets/sprites/tilemapMain.png";
     this.tilemapJungleGrass = new Image();
-    this.tilemapJungleGrass.src = "../assets/sprites/jungleGrass.png"
+    this.tilemapJungleGrass.src = "../assets/sprites/jungleGrass.png";
     this.tilemapSavannaGrass = new Image();
-    this.tilemapSavannaGrass.src = "../assets/sprites/savannaGrass.png"
+    this.tilemapSavannaGrass.src = "../assets/sprites/savannaGrass.png";
     this.tilemapSnow = new Image();
-    this.tilemapSnow.src = "../assets/sprites/snow.png"
+    this.tilemapSnow.src = "../assets/sprites/snow.png";
     this.tilemapSwampGrass = new Image();
-    this.tilemapSwampGrass.src = "../assets/sprites/swampGrass.png"
+    this.tilemapSwampGrass.src = "../assets/sprites/swampGrass.png";
     this.tilemapTaigaGrass = new Image();
-    this.tilemapTaigaGrass.src = "../assets/sprites/taigaGrass.png"
+    this.tilemapTaigaGrass.src = "../assets/sprites/taigaGrass.png";
   }
 
   generateLayers() {
     const tiles = [];
-    const objects = [];
+    const fgObjects = [];
+    const bgObjects = [];
     const objectsBinMap = [];
-    // const biomeScale = 0.05;
+    const obstaclesBinMap = [];
+  
     const heightScale = 0.05;
     const detailScale = 0.01;
     const tempScale = 0.006;
@@ -310,16 +324,16 @@ export class Chunk {
     // };
 
     for (let y = 0; y < CHUNK_SIZE; y++) {
-      objectsBinMap[y] = []
+      objectsBinMap[y] = [];
+      obstaclesBinMap[y] = [];
       for (let x = 0; x < CHUNK_SIZE; x++){
         const worldX = this.chunkX * CHUNK_SIZE + x;
         const worldY = this.chunkY * CHUNK_SIZE + y;
 
-        // const biomeNoise  =    this.noise.simplex2(worldX * biomeScale, worldY * biomeScale);
         const heightNoise =    this.noise.simplex2(worldX * heightScale, worldY * heightScale);
         const detailNoise =    this.noise.simplex2(worldX * detailScale, worldY * detailScale);
         const moisturelNoise = this.noise.simplex2(worldX * moistureScale, worldY * moistureScale);
-        const tempNoise =      this.noise.simplex2(worldX * tempScale, worldY * tempScale); // + 10000
+        const tempNoise =      this.noise.simplex2(worldX * tempScale, worldY * tempScale);
 
         const elevation = heightNoise * 0.7 + detailNoise * 0.3;
         const moisture = moisturelNoise; // (biomeNoise + detailNoise * 0.2) / 1.2;
@@ -330,10 +344,16 @@ export class Chunk {
         tempVals.push(temperature);
 
         objectsBinMap[y][x] = false;
+        obstaclesBinMap[y][x] = false;
       }
     }
 
     const [equalizedTemp, equalizedMoisture] = equalize2D(tempVals, moisVals);
+    const objectClasses = ['bush', 
+                          'rock', 
+                          'smallRock', 
+                          'smallLeave',
+                        ];
 
     let index = 0;
     for (let y = 0; y < CHUNK_SIZE; y++) {
@@ -342,16 +362,28 @@ export class Chunk {
         const tile = new Tile(elevVals[index], equalizedMoisture[index], equalizedTemp[index]);
         index++;
         row.push(tile);
-        if (Math.random() < 0.01 && !objectsBinMap[y][x] && x < CHUNK_SIZE - 2 && y < CHUNK_SIZE - 2) {
-          const bush = new Bush(x, y);
-          objects.push(bush);
-          setSubArray(objectsBinMap, y, y + bush.spriteHeight, x, x + bush.spriteWidth, true);
-        }
+
+        objectClasses.forEach(objClass => this.spawnObject(0.01, 
+                                                          x, y, 
+                                                          objClass, 
+                                                          objectsBinMap, 
+                                                          obstaclesBinMap, 
+                                                          fgObjects, 
+                                                          bgObjects));
       }
       tiles.push(row);
     }
     // saveNoiseData(noiseData);
-    return [tiles, objects]
+    return [tiles, fgObjects, bgObjects, obstaclesBinMap];
+  }
+
+  spawnObject(prob, x, y, objClass, objectsBinMap, obstaclesBinMap, fgObjects, bgObjects) {
+    if (Math.random() < prob && !objectsBinMap[y][x] && x < CHUNK_SIZE - 2 && y < CHUNK_SIZE - 2) {
+      const obj = ObjectFactory.create(objClass, x, y);
+      obj.zIndex === 1 ? fgObjects.push(obj) : bgObjects.push(obj);
+      setSubArray(objectsBinMap, y, y + obj.spriteHeight, x, x + obj.spriteWidth, true);
+      if (obj.obstacle) setSubArray(obstaclesBinMap, y + obj.spriteHeight / 2, y + obj.spriteHeight, x, x + obj.spriteWidth, true);
+    }
   }
 
   getTileNeighborData(x, y, gameMap) {
@@ -378,48 +410,55 @@ export class Chunk {
       const neighborTile = gameMap.getTileAt(nx, ny);
       neighbors.push(neighborTile);
 
-      if (neighborTile) {
-        if (neighborTile.layerLevel === 1) {
-          bitmask |= bit;
-        }
+      if (neighborTile?.layerLevel === 1) {
+        bitmask |= bit;
       }
     }
     this.tiles[y][x].setBitmask(bitmask);
 
-    return [bitmask, neighbors]
+    return [bitmask, neighbors];
   }
 
-  getRenderableObjects() {
+  getRenderableFgObjects() {
     return this.objects.map(obj => ({
-      type: 'object',
+      type: 'fgObject',
       entity: obj,
-      sortY: this.chunkY * CHUNK_SIZE + obj.y + obj.spriteHeight - 0.5
+      sortY: this.chunkY * CHUNK_SIZE + obj.y + obj.spriteHeight - obj.spriteOffset,
     }));
   }
+
+  getRenderableBgObjects() {
+    return this.bgObjects.map(obj => ({
+      type: 'bgObject',
+      entity: obj,
+    }));
+  }
+
+
 
   getTileType(x, y) {
     return this.tiles[y][x].type
   }
 
-  drawTile(ctx, x, y, sx, sy, nsx, nsy, screenOffsetX, screenOffsetY, type, neighborType, layerLevel) {
+  drawTile(ctx, x, y, tile, sx, sy, nsx, nsy, screenOffsetX, screenOffsetY, neighborType) {
     const tilemaps = {
-      ice: this.tilemapMain,
+      ice:        this.tilemapMain,
       deep_water: this.tilemapMain,
-      water: this.tilemapMain,
-      tundra: this.tilemapSnow,
-      mountain: this.tilemapMain,
-      desert: this.tilemapMain,
-      swamp: this.tilemapSwampGrass,
-      forest: this.tilemapGrass,
-      taiga: this.tilemapTaigaGrass,
-      prairie: this.tilemapMain,
-      savanna: this.tilemapSavannaGrass,
-      jungle: this.tilemapJungleGrass,
+      water:      this.tilemapMain,
+      tundra:     this.tilemapSnow,
+      mountain:   this.tilemapMain,
+      desert:     this.tilemapMain,
+      swamp:      this.tilemapSwampGrass,
+      forest:     this.tilemapGrass,
+      taiga:      this.tilemapTaigaGrass,
+      prairie:    this.tilemapMain,
+      savanna:    this.tilemapSavannaGrass,
+      jungle:     this.tilemapJungleGrass,
     };
 
-    const currTilemap = tilemaps[type];
+    const currTilemap = tilemaps[tile.type];
 
-    if (neighborType && layerLevel === 1) {
+    if (neighborType && tile.layerLevel === 1) {
       const neighborTilemap = tilemaps[neighborType];
 
       ctx.drawImage(neighborTilemap, 
@@ -446,24 +485,22 @@ export class Chunk {
     ctx.imageSmoothingEnabled = false;
     
     const spritesXY = {
-      ice: [2, 0],
+      ice:        [2, 0],
       deep_water: [4, 0],
-      water:  [3, 0],
-      mountain: [6, 0],
-      desert: [0, 0],
-      swamp: [1, 1],
-      prairie: [0, 1],
-      tundra: [1, 1],
-      forest: [1, 1],
-      taiga: [1, 1],
-      savanna: [1, 1],
-      jungle: [1,1],
+      water:      [3, 0],
+      mountain:   [6, 0],
+      desert:     [0, 0],
+      swamp:      [1, 1],
+      prairie:    [0, 1],
+      tundra:     [1, 1],
+      forest:     [1, 1],
+      taiga:      [1, 1],
+      savanna:    [1, 1],
+      jungle:     [1, 1],
     };
 
-    let bitmask = 0;
-    let neighbors = [];
     let neighborType = "";
-    let [sx, sy] = [0, 0];
+    let [sx, sy] =   [0, 0];
     let [nsx, nsy] = [0, 0];
 
     for (let y = 0; y < CHUNK_SIZE; y++) {
@@ -471,12 +508,13 @@ export class Chunk {
         const tile = this.tiles[y][x];
 
         if (tile.layerLevel === 1) {
-          [bitmask, neighbors] = this.getTileNeighborData(x, y, gameMap);
+          const [bitmask, neighbors] = this.getTileNeighborData(x, y, gameMap);
           const sumLevels = neighbors.reduce((accumulator, obj) => {
             return accumulator + obj?.layerLevel;
           }, 0);
 
           [sx, sy] = sumLevels === 8 ? spritesXY[tile.type] : bitmaskLayout[bitmask];
+
           for (let neighbor of neighbors) {
             if (neighbor?.type && neighbor?.layerLevel === 0) {
               [nsx, nsy] = spritesXY[neighbor.type];
@@ -490,12 +528,11 @@ export class Chunk {
 
         this.drawTile(ctx,
                       x, y, 
+                      tile,
                       sx, sy,
                       nsx, nsy,
                       screenOffsetX, screenOffsetY,
-                      tile.type,
-                      neighborType,
-                      tile.layerLevel
+                      neighborType
                       );
       }
     }

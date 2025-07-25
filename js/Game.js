@@ -23,10 +23,6 @@ export class Game {
   render() {
     this.gameMap.createMapLayout(this.cameraX, this.cameraY, this.canvas)
     this.gameMap.renderMap(this.cameraX, this.cameraY, this.player);
-    // this.player.renderPlayer(this.ctx, 
-    //                         this.cameraX,
-    //                         this.cameraY);
-    // console.log(`Player: ${this.player.x},${this.player.y} | Camera: ${this.cameraX},${this.cameraY}`);
   }
 
   update(dt) {

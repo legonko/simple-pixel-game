@@ -93,7 +93,9 @@ export class Player {
     const newY = this.y + dy;
 
     const tile = gameMap.getTileAt(newX, newY);
-    if (tile.type != "water") {
+    const obst = gameMap.getObstAt(newX, newY);
+
+    if (tile.type != "water" && !obst) {
       this.x = newX;
       this.y = newY;
     }

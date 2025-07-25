@@ -35,6 +35,20 @@ export class GameMap extends Map {
     return chunk.tiles[localY][localX];
   }
 
+  getObstAt(tileX, tileY) {
+    const chunkX = Math.floor(tileX / CHUNK_SIZE);
+    const chunkY = Math.floor(tileY / CHUNK_SIZE);
+  
+    const localX = Math.floor(((tileX % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE);
+    const localY = Math.floor(((tileY % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE);
+  
+    const chunk = this.getChunk(chunkX, chunkY);
+    // console.log(chunk.tiles)
+    if (!chunk) return null;
+  
+    return chunk.obstaclesBinMap[localY][localX];
+  }
+
   calculateVisibleChunkXY(cameraX, cameraY, canvas) {
     const pixelsPerChunk = CHUNK_SIZE * RENDER_TILE_SIZE;
 
@@ -63,12 +77,14 @@ export class GameMap extends Map {
   renderMap(cameraX, cameraY, player) {
     this.ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const renderList = [];
+    const foregroundObjectsList = [];
+    const backgroundObjectList = [];
 
     const [screenChunkStartX, 
           screenChunkStartY, 
           screenChunkEndX, 
-          screenChunkEndY] = this.calculateVisibleChunkXY(cameraX, cameraY, canvas);
+          screenChunkEndY
+          ] = this.calculateVisibleChunkXY(cameraX, cameraY, canvas);
 
     for (let chunkY = screenChunkStartY; chunkY <= screenChunkEndY; chunkY++) {
       for (let chunkX = screenChunkStartX; chunkX <= screenChunkEndX; chunkX++) {
@@ -80,9 +96,14 @@ export class GameMap extends Map {
         
         const chunk = this.getChunk(chunkX, chunkY);
         chunk.renderChunk(this.ctx, screenX, screenY, this);
-        // chunk.renderObjects(this.ctx, screenX, screenY);
 
-        renderList.push(...chunk.getRenderableObjects().map(obj => ({
+        backgroundObjectList.push(...chunk.getRenderableBgObjects().map(obj => ({
+          ...obj,
+          screenX,
+          screenY
+        })));
+
+        foregroundObjectsList.push(...chunk.getRenderableFgObjects().map(obj => ({
           ...obj,
           screenX,
           screenY
@@ -90,7 +111,7 @@ export class GameMap extends Map {
       }
     }
 
-    renderList.push({
+    foregroundObjectsList.push({
       type: 'player',
       entity: player,
       sortY: player.y,
@@ -98,16 +119,15 @@ export class GameMap extends Map {
       screenY: 0
     })
 
-    renderList.sort((a, b) => {
-      // Сначала сравниваем по Y
-      if (a.sortY !== b.sortY) return a.sortY - b.sortY;
+    foregroundObjectsList.sort((a, b) => {
       
-      // Если Y одинаковый, игрок должен быть ПЕРЕД объектами
+      if (a.sortY !== b.sortY) return a.sortY - b.sortY;
       return a.type === 'player' ? -1 : 1;
     });
-    // console.log('0',renderList[0])
 
-    renderList.forEach(item => {
+    const renderObjects = backgroundObjectList.concat(foregroundObjectsList); 
+
+    renderObjects.forEach(item => {
       if (item.type === "player") {
         item.entity.renderPlayer(this.ctx, cameraX, cameraY);
       }

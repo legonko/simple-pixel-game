@@ -24,12 +24,6 @@ export class GameObject {
       RENDER_TILE_SIZE * this.spriteHeight
       );
 
-      // ctx.fillStyle = 'red';
-      // ctx.fillRect(
-      //   this.x* RENDER_TILE_SIZE - cameraX, 
-      //   this.y* RENDER_TILE_SIZE - cameraY, 
-      //   4, 4
-      // );
       ctx.fillStyle = 'black';
       ctx.fillRect(
         this.x * RENDER_TILE_SIZE + screenOffsetX,
@@ -44,9 +38,49 @@ export class Bush extends GameObject {
     super(x, y);
     this.spriteWidth = 2; // in tiles
     this.spriteHeight = 2;
+    this.spriteOffset = 0.5; // for bottom shadow
     this.spritePosX = 2; // position on the spritesheet
     this.spritePosY = 0;
     this.solid = false;
-    this.coverPlayer = true;
+    this.zIndex = 1;
+  }
+}
+
+export class SmallLeave extends GameObject {
+  constructor(x, y) {
+    super(x, y);
+    this.spriteWidth = 1; // in tiles
+    this.spriteHeight = 1;
+    this.spritePosX = 3; // position on the spritesheet
+    this.spritePosY = 2;
+    this.solid = false;
+    this.spriteOffset = 0;
+    this.zIndex = 0;
+  }
+}
+
+export class SmallRock extends GameObject {
+  constructor(x, y) {
+    super(x, y);
+    this.spriteWidth = 1; // in tiles
+    this.spriteHeight = 1;
+    this.spritePosX = 2; // position on the spritesheet
+    this.spritePosY = 2;
+    this.solid = false;
+    this.spriteOffset = 0;
+    this.zIndex = 0;
+  }
+}
+
+export class Rock extends GameObject {
+  constructor(x, y) {
+    super(x, y);
+    this.spriteWidth = 2; // in tiles
+    this.spriteHeight = 2;
+    this.spriteOffset = 0.5; // for bottom shadow
+    this.spritePosX = 0; // position on the spritesheet
+    this.spritePosY = 2;
+    this.obstacle = true;
+    this.zIndex = 1;
   }
 }
