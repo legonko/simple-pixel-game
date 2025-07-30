@@ -362,15 +362,16 @@ export class Chunk {
         const tile = new Tile(elevVals[index], equalizedMoisture[index], equalizedTemp[index]);
         index++;
         row.push(tile);
-
-        objectClasses.forEach(objClass => this.spawnObject(0.01, 
-                                                          x, y, 
-                                                          objClass, 
-                                                          objectsBinMap, 
-                                                          obstaclesBinMap, 
-                                                          fgObjects, 
-                                                          bgObjects));
-      }
+        if (!["water", "ice", "deep_water"].includes(tile.type)) {
+          objectClasses.forEach(objClass => this.spawnObject(0.01, 
+                                                            x, y, 
+                                                            objClass, 
+                                                            objectsBinMap, 
+                                                            obstaclesBinMap, 
+                                                            fgObjects, 
+                                                            bgObjects));
+        }
+      }  
       tiles.push(row);
     }
     // saveNoiseData(noiseData);
@@ -386,7 +387,7 @@ export class Chunk {
     }
   }
 
-  getTileNeighborData(x, y, gameMap) {
+  getTileNeighborData(x, y, tileLayerLevel, gameMap) {
     let bitmask = 0;
     let neighbors = [];
 
@@ -408,9 +409,10 @@ export class Chunk {
       const nx = globalX + dx;
       const ny = globalY + dy;
       const neighborTile = gameMap.getTileAt(nx, ny);
+      const neighborTileLayerLevel = neighborTile?.layerLevel;
       neighbors.push(neighborTile);
 
-      if (neighborTile?.layerLevel === 1) {
+      if (neighborTileLayerLevel >= tileLayerLevel) { // in future: neighborTile?.layerLevel != 0
         bitmask |= bit;
       }
     }
@@ -458,7 +460,7 @@ export class Chunk {
 
     const currTilemap = tilemaps[tile.type];
 
-    if (neighborType && tile.layerLevel === 1) {
+    if (neighborType && (tile.layerLevel === 2 || tile.layerLevel === 3)) {
       const neighborTilemap = tilemaps[neighborType];
 
       ctx.drawImage(neighborTilemap, 
@@ -506,17 +508,16 @@ export class Chunk {
     for (let y = 0; y < CHUNK_SIZE; y++) {
       for (let x = 0; x < CHUNK_SIZE; x++) {
         const tile = this.tiles[y][x];
+        const tileLayerLevel = tile.layerLevel;
 
-        if (tile.layerLevel === 1) {
-          const [bitmask, neighbors] = this.getTileNeighborData(x, y, gameMap);
-          const sumLevels = neighbors.reduce((accumulator, obj) => {
-            return accumulator + obj?.layerLevel;
-          }, 0);
+        if (tileLayerLevel === 2 || tileLayerLevel === 3) {
+          const [bitmask, neighbors] = this.getTileNeighborData(x, y, tileLayerLevel, gameMap);
+          const isFullySurrounded = neighbors.every(n => n && n.layerLevel === tileLayerLevel);
 
-          [sx, sy] = sumLevels === 8 ? spritesXY[tile.type] : bitmaskLayout[bitmask];
+        [sx, sy] = isFullySurrounded ? spritesXY[tile.type] : bitmaskLayout[bitmask];
 
           for (let neighbor of neighbors) {
-            if (neighbor?.type && neighbor?.layerLevel === 0) {
+            if (neighbor?.type && (neighbor?.layerLevel < tileLayerLevel)) {
               [nsx, nsy] = spritesXY[neighbor.type];
               neighborType = neighbor.type;
             } 

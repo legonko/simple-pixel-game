@@ -17,30 +17,30 @@ export class Tile {
                                     : ['water', 0];
     if (e > 0.65) return ['mountain', 0];
 
-    if (t < -0.6) return m > 0.2 ? ['taiga', 1] : ['tundra', 1];
-    if (t < -0.4) return m > 0.4 ? ['swamp', 1] : ['taiga', 1];
-    if (t < -0.2) return m > 0.4 ? ['swamp', 1] : ['forest', 1];
-    if (t <    0) return m > 0.4 ? ['swamp', 1]
-                                  : m > -0.4 ? ['forest', 1] 
-                                  : ['prairie', 0];
-    if (t <  0.2) return m > 0.4 ? ['swamp', 1] 
-                                  : m > 0.2 ? ['forest', 1]
-                                  : m > -0.2 ? ['savanna', 1]
-                                  : m > -0.6 ? ['prairie', 0]
-                                  : ['desert', 0];
-    if (t <  0.4) return m > 0.4 ? ['jungle', 1] 
-                                  : m > 0.2 ? ['forest', 1]
-                                  : m > -0.2 ? ['savanna', 1]
-                                  : m > -0.6 ? ['prairie', 0]
-                                  : ['desert', 0];
-    if (t <  0.6) return m > 0.4 ? ['jungle', 1]
-                                  : m > -0.2 ? ['savanna', 1]
-                                  : m > -0.6 ? ['prairie', 0]
-                                  : ['desert', 0];
-    return m > 0.4 ? ['jungle', 1]
-                    : m > -0.2 ? ['savanna', 1]
-                    : m > -0.4 ? ['prairie', 0]
-                    : ['desert', 0];
+    if (t < -0.6) return m > 0.2 ? ['taiga', 2] : ['tundra', 3];
+    if (t < -0.4) return m > 0.4 ? ['swamp', 2] : ['taiga', 2];
+    if (t < -0.2) return m > 0.4 ? ['swamp', 2] : ['forest', 2];
+    if (t <    0) return m > 0.4 ? ['swamp', 2]
+                                  : m > -0.4 ? ['forest', 2] 
+                                  : ['prairie', 1];
+    if (t <  0.2) return m > 0.4 ? ['swamp', 2] 
+                                  : m > 0.2 ? ['forest', 2]
+                                  : m > -0.2 ? ['savanna', 2]
+                                  : m > -0.6 ? ['prairie', 1]
+                                  : ['desert', 1];
+    if (t <  0.4) return m > 0.4 ? ['jungle', 2] 
+                                  : m > 0.2 ? ['forest', 2]
+                                  : m > -0.2 ? ['savanna', 2]
+                                  : m > -0.6 ? ['prairie', 1]
+                                  : ['desert', 1];
+    if (t <  0.6) return m > 0.4 ? ['jungle', 2]
+                                  : m > -0.2 ? ['savanna', 2]
+                                  : m > -0.6 ? ['prairie', 1]
+                                  : ['desert', 1];
+    return m > 0.4 ? ['jungle', 2]
+                    : m > -0.2 ? ['savanna', 2]
+                    : m > -0.4 ? ['prairie', 1]
+                    : ['desert', 1];
   }
 
   setBitmask(bitmask) {

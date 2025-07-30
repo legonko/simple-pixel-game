@@ -79,7 +79,7 @@ export class Rock extends GameObject {
     this.spriteHeight = 2;
     this.spriteOffset = 0.5; // for bottom shadow
     this.spritePosX = 0; // position on the spritesheet
-    this.spritePosY = 2;
+    this.spritePosY = 4;
     this.obstacle = true;
     this.zIndex = 1;
   }
