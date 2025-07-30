@@ -7,7 +7,7 @@ export class Game {
     this.ctx = ctx;
     this.canvas = canvas;
     this.keys = keys;
-    this.globalNoise = this.generateNoise();
+    this.globalNoise = this._generateGlobalNoise();
     this.setup();
     this.render();
   }
@@ -36,7 +36,7 @@ export class Game {
     this.cameraY += (targetCameraY - this.cameraY) * lerpSpeed;
   }
 
-  getWorldSeed() {
+  _getWorldSeed() {
     let worldSeed = sessionStorage.getItem("worldSeed");
     if (!worldSeed) {
       worldSeed = Math.floor(Math.random() * 1000000);
@@ -45,8 +45,8 @@ export class Game {
     return worldSeed;
   }
 
-  generateNoise() {
-    let worldSeed = this.getWorldSeed();
+  _generateGlobalNoise() {
+    let worldSeed = this._getWorldSeed();
     noise.seed(worldSeed);
     return noise;
   }

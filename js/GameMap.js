@@ -8,48 +8,46 @@ export class GameMap extends Map {
     this.noise = noise;
   }
 
+  _chunkKey(chunkX, chunkY) {
+    return `${chunkX},${chunkY}`;
+  }
+
   setChunk(chunkX, chunkY) {
-    const key = `${chunkX},${chunkY}`;
+    const key = this._chunkKey(chunkX, chunkY);
     if (!this.has(key)) {
       const chunk = new Chunk(chunkX, chunkY, this.noise);
       this.set(key, chunk);
     }
   }
 
-  getChunk(chunkX, chunkY) {
-    const key = `${chunkX},${chunkY}`;
+  _getChunk(chunkX, chunkY) {
+    const key = this._chunkKey(chunkX, chunkY);
     return this.get(key);
   }
 
-  getTileAt(tileX, tileY) {
+  _getChunkCoords(tileX, tileY) {
     const chunkX = Math.floor(tileX / CHUNK_SIZE);
     const chunkY = Math.floor(tileY / CHUNK_SIZE);
   
     const localX = Math.floor(((tileX % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE);
     const localY = Math.floor(((tileY % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE);
-  
-    const chunk = this.getChunk(chunkX, chunkY);
-    // console.log(chunk.tiles)
-    if (!chunk) return null;
-  
-    return chunk.tiles[localY][localX];
+
+    return [chunkX, chunkY, localX, localY];
+  }
+
+  getTileAt(tileX, tileY) {
+    const [chunkX, chunkY, localX, localY] = this._getChunkCoords(tileX, tileY);
+    const chunk = this._getChunk(chunkX, chunkY);  
+    return chunk?.tiles[localY][localX] || null;
   }
 
   getObstAt(tileX, tileY) {
-    const chunkX = Math.floor(tileX / CHUNK_SIZE);
-    const chunkY = Math.floor(tileY / CHUNK_SIZE);
-  
-    const localX = Math.floor(((tileX % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE);
-    const localY = Math.floor(((tileY % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE);
-  
-    const chunk = this.getChunk(chunkX, chunkY);
-    // console.log(chunk.tiles)
-    if (!chunk) return null;
-  
-    return chunk.obstaclesBinMap[localY][localX];
+    const [chunkX, chunkY, localX, localY] = this._getChunkCoords(tileX, tileY);
+    const chunk = this._getChunk(chunkX, chunkY);  
+    return chunk?.obstaclesBinMap[localY][localX] || null;
   }
 
-  calculateVisibleChunkXY(cameraX, cameraY, canvas) {
+  _getVisibleChunkXY(cameraX, cameraY, canvas) {
     const pixelsPerChunk = CHUNK_SIZE * RENDER_TILE_SIZE;
 
     const screenChunkStartX = Math.floor(cameraX / pixelsPerChunk) - 1;
@@ -65,7 +63,7 @@ export class GameMap extends Map {
     const [screenChunkStartX, 
           screenChunkStartY, 
           screenChunkEndX, 
-          screenChunkEndY] = this.calculateVisibleChunkXY(cameraX, cameraY, canvas);
+          screenChunkEndY] = this._getVisibleChunkXY(cameraX, cameraY, canvas);
   
     for (let chunkY = screenChunkStartY; chunkY <= screenChunkEndY; chunkY++) {
       for (let chunkX = screenChunkStartX; chunkX <= screenChunkEndX; chunkX++) {
@@ -84,17 +82,19 @@ export class GameMap extends Map {
           screenChunkStartY, 
           screenChunkEndX, 
           screenChunkEndY
-          ] = this.calculateVisibleChunkXY(cameraX, cameraY, canvas);
+          ] = this._getVisibleChunkXY(cameraX, cameraY, canvas);
 
     for (let chunkY = screenChunkStartY; chunkY <= screenChunkEndY; chunkY++) {
       for (let chunkX = screenChunkStartX; chunkX <= screenChunkEndX; chunkX++) {
+        const chunk = this._getChunk(chunkX, chunkY);
+        if (!chunk) continue;
+
         const worldPixelX = chunkX * CHUNK_SIZE * RENDER_TILE_SIZE;
         const worldPixelY = chunkY * CHUNK_SIZE * RENDER_TILE_SIZE;
   
         const screenY = worldPixelY - cameraY;
         const screenX = worldPixelX - cameraX;
         
-        const chunk = this.getChunk(chunkX, chunkY);
         chunk.renderChunk(this.ctx, screenX, screenY, this);
 
         backgroundObjectList.push(...chunk.getRenderableBgObjects().map(obj => ({
@@ -120,12 +120,11 @@ export class GameMap extends Map {
     })
 
     foregroundObjectsList.sort((a, b) => {
-      
       if (a.sortY !== b.sortY) return a.sortY - b.sortY;
       return a.type === 'player' ? -1 : 1;
     });
 
-    const renderObjects = backgroundObjectList.concat(foregroundObjectsList); 
+    const renderObjects = [...backgroundObjectList, ...foregroundObjectsList]; 
 
     renderObjects.forEach(item => {
       if (item.type === "player") {

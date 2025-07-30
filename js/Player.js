@@ -12,10 +12,10 @@ export class Player {
     this.frameDuration = 0.4;
     this.spritesheet = new Image();
     this.spritesheet.src = "../assets/sprites/character.png";
-    this.sprites = this.getSprites();
+    this.sprites = this._getSprites();
   }
 
-  getSprites() {
+  _getSprites() {
     // orientation: [idle, walk1, walk2] - indices on spritesheet
     const sprites = {
       up:    [[3, 0], [3, 1], [3, 2]],
@@ -23,8 +23,7 @@ export class Player {
       left:  [[1, 0], [1, 1], [1, 2]],
       right: [[2, 0], [2, 1], [2, 2]]
     }
-
-    return sprites
+    return sprites;
   }
 
   renderPlayer(ctx, cameraX, cameraY) {
