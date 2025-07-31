@@ -44,6 +44,11 @@ export class Player {
                   RENDER_TILE_SIZE * 2, 
                   RENDER_TILE_SIZE * 2
                   );
+                  
+    // this._debugRender();
+  }
+
+  _debugRender() {
     ctx.fillStyle = 'red';
     ctx.fillRect(
       this.x* RENDER_TILE_SIZE - cameraX, 

@@ -24,12 +24,16 @@ export class GameObject {
       RENDER_TILE_SIZE * this.spriteHeight
       );
 
-      ctx.fillStyle = 'black';
-      ctx.fillRect(
-        this.x * RENDER_TILE_SIZE + screenOffsetX,
-        (this.y + this.spriteHeight) * RENDER_TILE_SIZE + screenOffsetY,
-        4, 4
-      );
+      // this._debugRender();  
+  }
+
+  _debugRender() {
+    ctx.fillStyle = 'black';
+    ctx.fillRect(
+      this.x * RENDER_TILE_SIZE + screenOffsetX,
+      (this.y + this.spriteHeight) * RENDER_TILE_SIZE + screenOffsetY,
+      4, 4
+    );
   }
 }
 

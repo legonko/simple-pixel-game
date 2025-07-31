@@ -274,6 +274,98 @@ const ObjectFactory = {
   }
 };
 
+const biomeData = {
+  swamp: {
+    tiles: [
+      {type: "swampGrass", layerLevel: 2},
+      {type: "swampWater", layerLevel: 0},
+    ],
+    objects: [
+      {type: "smallRock"},
+      {type: "smallLeave"},
+    ]
+  },
+  forest: {
+    tiles: [
+      {type: "forestGrass", layerLevel: 2},
+    ],
+    objects: [
+      {type: "rock"},
+      {type: "bush"},
+    ]
+  },
+  tundra: {
+    tiles: [
+      {type: "snow", layerLevel: 3},
+    ],
+    objects: [
+    ]
+  },
+  jungle: {
+    tiles: [
+      {type: "jungleGrass", layerLevel: 2},
+    ],
+    objects: [
+    ]
+  },
+  savanna: {
+    tiles: [
+      {type: "savannaGrass", layerLevel: 2},
+    ],
+    objects: [
+    ]
+  },
+  prairie: {
+    tiles: [
+      {type: "prairieDirt", layerLevel: 1},
+    ],
+    objects: [
+    ]
+  },
+  taiga: {
+    tiles: [
+      {type: "taigaGrass", layerLevel: 2},
+    ],
+    objects: [
+    ]
+  },
+  desert: {
+    tiles: [
+      {type: "sand", layerLevel: 1},
+    ],
+    objects: [
+    ]
+  },
+  mountain: {
+    tiles: [
+      {type: "mountain", layerLevel: 1},
+    ],
+    objects: [
+    ]
+  },
+  water: {
+    tiles: [
+      {type: "water", layerLevel: 0},
+    ],
+    objects: [
+    ]
+  },
+  deepWater: {
+    tiles: [
+      {type: "deepWater", layerLevel: 0},
+    ],
+    objects: [
+    ]
+  },
+  ice: {
+    tiles: [
+      {type: "ice", layerLevel: 0},
+    ],
+    objects: [
+    ]
+  },
+}
+
 export class Chunk {
   constructor(chunkX, chunkY, noise) {
     this.chunkX = chunkX;
@@ -344,32 +436,20 @@ export class Chunk {
     const tiles = [];
     const fgObjects = [];
     const bgObjects = [];
-
-    const objectClasses = ['bush', 
-                          'rock', 
-                          'smallRock', 
-                          'smallLeave',
-                        ];
-
+    
     let index = 0;
     for (let y = 0; y < CHUNK_SIZE; y++) {
       const row = []
       for (let x = 0; x < CHUNK_SIZE; x++){
-        const tile = new Tile(
+        const biomeType = this._classifyBiome(
           this.elevVals[index], 
           this.equalizedMoisture[index],
           this.equalizedTemp[index]
-        );
+        )
         index++;
+        const tile = this._createBiome(biomeData[biomeType], x, y, fgObjects, bgObjects);
         row.push(tile);
-        // if (tile.type === "swamp") this.createSwamp();
-        if (!["water", "ice", "deep_water"].includes(tile.type)) {
-          objectClasses.forEach(objClass => this._spawnObject(0.01, 
-                                                            x, y, 
-                                                            objClass,
-                                                            fgObjects, 
-                                                            bgObjects));
-        }
+        
       }  
       tiles.push(row);
     }
@@ -377,10 +457,69 @@ export class Chunk {
     return [tiles, fgObjects, bgObjects];
   }
 
-  createSwamp(prob) {
-    if (Math.random() < prob) {
-      
+  _createBiome(biome_obj, x, y, fgObjects, bgObjects) {
+    const prob = 0.1
+    let tile;
+
+    // --------- fix this ------------- 
+    if (biome_obj.tiles.length > 1) {
+      if (Math.random() < prob) {
+        tile = new Tile(biome_obj.tiles[1].type, biome_obj.tiles[1].layerLevel);  
+      } else {
+        tile = new Tile(biome_obj.tiles[0].type, biome_obj.tiles[0].layerLevel);
+      }
+    } else {
+      tile = new Tile(biome_obj.tiles[0].type, biome_obj.tiles[0].layerLevel);
     }
+
+    if (!["water", "ice", "deepWater"].includes(tile.type)) {
+      for (const obj of biome_obj.objects) {
+        this._spawnObject(
+          0.01, 
+          x, y, 
+          obj.type,
+          fgObjects, 
+          bgObjects
+        );
+      }
+    }
+    return tile;
+  }
+
+  _classifyBiome(elevation, moisture, temperature) {
+    const t = temperature;
+    const m = moisture;
+    const e = elevation;
+
+    if (e < -0.3) return t < -0.5 ? 'ice' 
+                                    : e < -0.6 ? 'deepWater'
+                                    : 'water';
+    if (e > 0.65) return 'mountain';
+
+    if (t < -0.6) return m > 0.2 ? 'taiga' : 'tundra';
+    if (t < -0.4) return m > 0.4 ? 'swamp' : 'taiga';
+    if (t < -0.2) return m > 0.4 ? 'swamp' : 'forest';
+    if (t <    0) return m > 0.4 ? 'swamp'
+                                  : m > -0.4 ? 'forest' 
+                                  : 'prairie';
+    if (t <  0.2) return m > 0.4 ? 'swamp' 
+                                  : m >  0.2 ? 'forest'
+                                  : m > -0.2 ? 'savanna'
+                                  : m > -0.6 ? 'prairie'
+                                  : 'desert';
+    if (t <  0.4) return m > 0.4 ? 'jungle' 
+                                  : m >  0.2 ? 'forest'
+                                  : m > -0.2 ? 'savanna'
+                                  : m > -0.6 ? 'prairie'
+                                  : 'desert';
+    if (t <  0.6) return m > 0.4 ? 'jungle'
+                                  : m > -0.2 ? 'savanna'
+                                  : m > -0.6 ? 'prairie'
+                                  : 'desert';
+    return m > 0.4 ? 'jungle'
+                    : m > -0.2 ? 'savanna'
+                    : m > -0.4 ? 'prairie'
+                    : 'desert';
   }
 
   _spawnObject(prob, x, y, objClass, fgObjects, bgObjects) {
@@ -448,26 +587,25 @@ export class Chunk {
     }));
   }
 
-
-
   getTileType(x, y) {
     return this.tiles[y][x]?.type
   }
 
   drawTile(ctx, x, y, tile, sx, sy, nsx, nsy, screenOffsetX, screenOffsetY, neighborType) {
     const tilemaps = {
-      ice:        this.tilemapMain,
-      deep_water: this.tilemapMain,
-      water:      this.tilemapMain,
-      tundra:     this.tilemapSnow,
-      mountain:   this.tilemapMain,
-      desert:     this.tilemapMain,
-      swamp:      this.tilemapSwampGrass,
-      forest:     this.tilemapGrass,
-      taiga:      this.tilemapTaigaGrass,
-      prairie:    this.tilemapMain,
-      savanna:    this.tilemapSavannaGrass,
-      jungle:     this.tilemapJungleGrass,
+      ice:          this.tilemapMain,
+      deepWater:    this.tilemapMain,
+      water:        this.tilemapMain,
+      snow:         this.tilemapSnow,
+      mountain:     this.tilemapMain,
+      sand:         this.tilemapMain,
+      swampGrass:   this.tilemapSwampGrass,
+      swampWater:   this.tilemapMain,
+      forestGrass:  this.tilemapGrass,
+      taigaGrass:   this.tilemapTaigaGrass,
+      prairieDirt:  this.tilemapMain,
+      savannaGrass: this.tilemapSavannaGrass,
+      jungleGrass:  this.tilemapJungleGrass,
     };
 
     const currTilemap = tilemaps[tile.type];
@@ -502,18 +640,19 @@ export class Chunk {
     ctx.imageSmoothingEnabled = false;
     
     const spritesXY = {
-      ice:        [2, 0],
-      deep_water: [4, 0],
-      water:      [3, 0],
-      mountain:   [6, 0],
-      desert:     [0, 0],
-      swamp:      [1, 1],
-      prairie:    [0, 1],
-      tundra:     [1, 1],
-      forest:     [1, 1],
-      taiga:      [1, 1],
-      savanna:    [1, 1],
-      jungle:     [1, 1],
+      ice:          [2, 0],
+      deepWater:    [4, 0],
+      water:        [3, 0],
+      mountain:     [6, 0],
+      sand:         [0, 0],
+      swampGrass:   [1, 1],
+      swampWater:   [2, 1],
+      prairieDirt:  [0, 1],
+      snow:         [1, 1],
+      forestGrass:  [1, 1],
+      taigaGrass:   [1, 1],
+      savannaGrass: [1, 1],
+      jungleGrass:  [1, 1],
     };
 
     for (let y = 0; y < CHUNK_SIZE; y++) {
@@ -521,7 +660,7 @@ export class Chunk {
         const tile = this.tiles[y][x];
         const tileLayerLevel = tile.layerLevel;
 
-        let [sx, sy] =   [0, 0];
+        let [sx, sy]   = [0, 0];
         let [nsx, nsy] = [0, 0];
         let neighborType = null;
 
