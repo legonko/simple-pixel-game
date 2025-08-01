@@ -44,7 +44,7 @@ export class Player {
                   RENDER_TILE_SIZE * 2, 
                   RENDER_TILE_SIZE * 2
                   );
-                  
+
     // this._debugRender();
   }
 
@@ -98,8 +98,10 @@ export class Player {
 
     const tile = gameMap.getTileAt(newX, newY);
     const obst = gameMap.getObstAt(newX, newY);
+    
+    const WATER_TYPES = ["water", "deepWater", "swampWater"];
 
-    if (tile.type != "water" && !obst) {
+    if (!WATER_TYPES.includes(tile.type) && !obst) {
       this.x = newX;
       this.y = newY;
     }

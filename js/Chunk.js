@@ -1,7 +1,8 @@
 import { CHUNK_SIZE, RENDER_TILE_SIZE, SOURCE_TILE_SIZE } from "./config.js";
-import { Bush, Rock, SmallLeave, SmallRock } from "./GameObject.js";
+import { GameObject } from "./GameObject.js";
 import { Tile } from './Tile.js';
 
+const WATER_TYPES = ["water", "ice", "deepWater", "swampWater"];
 
 const bitmaskLayout = {
   0: [3, 3],
@@ -262,16 +263,15 @@ const bitmaskLayout = {
   129: [3, 3],
 }
 
-const ObjectFactory = {
-  create(type, x, y) {
-    switch(type) {
-      case 'bush': return new Bush(x, y);
-      case 'rock': return new Rock(x, y);
-      case 'smallRock': return new SmallRock(x, y);
-      case 'smallLeave': return new SmallLeave(x, y);
-      default: throw new Error('Unknown object type');
-    }
-  }
+const objectSpawnProbability = {
+  bush:                 0.02,
+  rock:                 0.01,
+  smallLeave:           0.02,
+  smallFlowerRed:       0.03,
+  smallFlowerYellow:    0.03,
+  smallStone:           0.02,
+  stump:                0.01,
+  smallGrass:           0.20,
 };
 
 const biomeData = {
@@ -281,7 +281,7 @@ const biomeData = {
       {type: "swampWater", layerLevel: 0},
     ],
     objects: [
-      {type: "smallRock"},
+      {type: "smallStone"},
       {type: "smallLeave"},
     ]
   },
@@ -292,6 +292,10 @@ const biomeData = {
     objects: [
       {type: "rock"},
       {type: "bush"},
+      {type: "smallFlowerRed"},
+      {type: "smallFlowerYellow"},
+      {type: "smallGrass"},
+      {type: "stump"},
     ]
   },
   tundra: {
@@ -374,7 +378,7 @@ export class Chunk {
 
     this._loadTilemaps();
     
-    this.objectsBinMap = Array.from({ length: CHUNK_SIZE }, () => Array(CHUNK_SIZE).fill(false));
+    this.objectsBinMap   = Array.from({ length: CHUNK_SIZE }, () => Array(CHUNK_SIZE).fill(false));
     this.obstaclesBinMap = Array.from({ length: CHUNK_SIZE }, () => Array(CHUNK_SIZE).fill(false));
 
     [this.elevVals, this.equalizedTemp, this.equalizedMoisture] = this._generateNoises();
@@ -472,10 +476,10 @@ export class Chunk {
       tile = new Tile(biome_obj.tiles[0].type, biome_obj.tiles[0].layerLevel);
     }
 
-    if (!["water", "ice", "deepWater"].includes(tile.type)) {
+    if (!WATER_TYPES.includes(tile.type)) {
       for (const obj of biome_obj.objects) {
         this._spawnObject(
-          0.01, 
+          objectSpawnProbability[obj.type], 
           x, y, 
           obj.type,
           fgObjects, 
@@ -524,7 +528,7 @@ export class Chunk {
 
   _spawnObject(prob, x, y, objClass, fgObjects, bgObjects) {
     if (Math.random() < prob && !this.objectsBinMap[y][x] && x < CHUNK_SIZE - 2 && y < CHUNK_SIZE - 2) {
-      const obj = ObjectFactory.create(objClass, x, y);
+      const obj = new GameObject(x, y, objClass);
       obj.zIndex === 1 ? fgObjects.push(obj) : bgObjects.push(obj);
       this._markOccupied(obj, x, y);
     }
@@ -535,7 +539,7 @@ export class Chunk {
     const h = obj.spriteHeight;
 
     setSubArray(this.objectsBinMap, y, y + h, x, x + w);
-    if (obj.obstacle) setSubArray(this.obstaclesBinMap, y + h / 2, y + h, x, x + w);
+    if (obj.isObstacle) setSubArray(this.obstaclesBinMap, y + (h >= 2 ? h / 2 : 0), y + h, x, x + w);
   }
 
   getTileNeighborData(x, y, tileLayerLevel, gameMap) {
