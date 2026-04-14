@@ -296,7 +296,7 @@ const biomeData = {
       {type: "forestGrass", layerLevel: 2},
     ],
     objects: [
-      // {type: "rock"},
+      {type: "rock"},
       {type: "bush"},
       {type: "smallFlowerRed"},
       {type: "smallFlowerYellow"},

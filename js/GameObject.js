@@ -2,11 +2,11 @@ import { RENDER_TILE_SIZE, SOURCE_TILE_SIZE } from "./config.js";
 
 const gameObjects = {
   bush:                      {spriteWidth: 2, spriteHeight: 2, spriteOffset: 0.5, spritePosX: 2, spritePosY: 0, zIndex: 1, isObstacle: false},
-  rock:                      {spriteWidth: 2, spriteHeight: 2, spriteOffset: 0.5, spritePosX: 0, spritePosY: 7, zIndex: 1, isObstacle: true},
+  rock:                      {spriteWidth: 2, spriteHeight: 2, spriteOffset: 0.5, spritePosX: 0, spritePosY: 6, zIndex: 1, isObstacle: true},
   smallLeave:                {spriteWidth: 1, spriteHeight: 1, spriteOffset: 0.0, spritePosX: 3, spritePosY: 2, zIndex: 0, isObstacle: false},
   smallFlowerRed:            {spriteWidth: 1, spriteHeight: 1, spriteOffset: 0.0, spritePosX: 2, spritePosY: 3, zIndex: 0, isObstacle: false},
   smallFlowerYellow:         {spriteWidth: 1, spriteHeight: 1, spriteOffset: 0.0, spritePosX: 3, spritePosY: 3, zIndex: 0, isObstacle: false},
-  smallStone:                {spriteWidth: 1, spriteHeight: 1, spriteOffset: 0.0, spritePosX: 1, spritePosY: 6, zIndex: 0, isObstacle: false},
+  smallStone:                {spriteWidth: 1, spriteHeight: 1, spriteOffset: 0.0, spritePosX: 1, spritePosY: 5, zIndex: 0, isObstacle: false},
   stump:                     {spriteWidth: 1, spriteHeight: 1, spriteOffset: 0.0, spritePosX: 1, spritePosY: 3, zIndex: 1, isObstacle: true},
   smallGrass:                {spriteWidth: 1, spriteHeight: 1, spriteOffset: 0.0, spritePosX: 2, spritePosY: 2, zIndex: 1, isObstacle: false},
   smallMushroomRed:          {spriteWidth: 1, spriteHeight: 1, spriteOffset: 0.0, spritePosX: 1, spritePosY: 1, zIndex: 1, isObstacle: false},
