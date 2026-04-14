@@ -1,9 +1,5 @@
 export class Tile {
   constructor(type, layerLevel) {
-    // this.elevation = elevation;
-    // this.moisture = moisture;
-    // this.temperature = temperature;
-    // [this.type, this.layerLevel] = this.classifyTile();
     this.type = type;
     this.layerLevel = layerLevel;
     this.bitmask = 0;

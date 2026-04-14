@@ -272,6 +272,11 @@ const objectSpawnProbability = {
   smallStone:           0.02,
   stump:                0.01,
   smallGrass:           0.20,
+  smallMushroomRed:     0.01,
+  smallMushroomBrown:   0.01,
+  smallMushroomGray:    0.01,
+  berryBush:            0.02,
+  smallBush:            0.10,
 };
 
 const biomeData = {
@@ -283,90 +288,107 @@ const biomeData = {
     objects: [
       {type: "smallStone"},
       {type: "smallLeave"},
-    ]
+    ],
+    path: "objectsForest.png"
   },
   forest: {
     tiles: [
       {type: "forestGrass", layerLevel: 2},
     ],
     objects: [
-      {type: "rock"},
+      // {type: "rock"},
       {type: "bush"},
       {type: "smallFlowerRed"},
       {type: "smallFlowerYellow"},
       {type: "smallGrass"},
       {type: "stump"},
-    ]
+      {type: "smallMushroomRed"},
+      {type: "smallMushroomBrown"},
+      {type: "smallMushroomGray"},
+      {type: "berryBush"},
+      {type: "smallBush"},
+    ],
+    path: "objectsForest.png"
   },
   tundra: {
     tiles: [
       {type: "snow", layerLevel: 3},
     ],
     objects: [
-    ]
+    ],
+    path: "objectsForest.png"
   },
   jungle: {
     tiles: [
       {type: "jungleGrass", layerLevel: 2},
     ],
     objects: [
-    ]
+    ],
+    path: "objectsForest.png"
   },
   savanna: {
     tiles: [
       {type: "savannaGrass", layerLevel: 2},
     ],
     objects: [
-    ]
+    ],
+    path: "objectsForest.png"
   },
   prairie: {
     tiles: [
       {type: "prairieDirt", layerLevel: 1},
     ],
     objects: [
-    ]
+    ],
+    path: "objectsForest.png"
   },
   taiga: {
     tiles: [
       {type: "taigaGrass", layerLevel: 2},
     ],
     objects: [
-    ]
+    ],
+    path: "objectsForest.png"
   },
   desert: {
     tiles: [
       {type: "sand", layerLevel: 1},
     ],
     objects: [
-    ]
+    ],
+    path: "objectsForest.png"
   },
   mountain: {
     tiles: [
       {type: "mountain", layerLevel: 1},
     ],
     objects: [
-    ]
+    ],
+    path: "objectsForest.png"
   },
   water: {
     tiles: [
       {type: "water", layerLevel: 0},
     ],
     objects: [
-    ]
+    ],
+    path: "objectsForest.png"
   },
   deepWater: {
     tiles: [
       {type: "deepWater", layerLevel: 0},
     ],
     objects: [
-    ]
+    ],
+    path: "objectsForest.png"
   },
   ice: {
     tiles: [
       {type: "ice", layerLevel: 0},
     ],
     objects: [
-    ]
+    ],
+    path: "objectsForest.png"
   },
 }
 
@@ -483,7 +505,8 @@ export class Chunk {
           x, y, 
           obj.type,
           fgObjects, 
-          bgObjects
+          bgObjects,
+          biome_obj.path,
         );
       }
     }
@@ -526,9 +549,9 @@ export class Chunk {
                     : 'desert';
   }
 
-  _spawnObject(prob, x, y, objClass, fgObjects, bgObjects) {
+  _spawnObject(prob, x, y, objClass, fgObjects, bgObjects, path) {
     if (Math.random() < prob && !this.objectsBinMap[y][x] && x < CHUNK_SIZE - 2 && y < CHUNK_SIZE - 2) {
-      const obj = new GameObject(x, y, objClass);
+      const obj = new GameObject(x, y, objClass, path);
       obj.zIndex === 1 ? fgObjects.push(obj) : bgObjects.push(obj);
       this._markOccupied(obj, x, y);
     }
