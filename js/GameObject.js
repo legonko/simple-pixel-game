@@ -22,7 +22,7 @@ export class GameObject {
     this.y = y;
     Object.assign(this, this._classifyObject(objName));
     this.spritesheet = new Image();
-    this.spritesheet.src = "../assets/sprites/" + path;
+    this.spritesheet.src = "./assets/sprites/" + path;
   }
 
   update(dt) {

@@ -11,7 +11,7 @@ export class Player {
     this.frameTime = 0;
     this.frameDuration = 0.4;
     this.spritesheet = new Image();
-    this.spritesheet.src = "../assets/sprites/character.png";
+    this.spritesheet.src = "./assets/sprites/character.png";
     this.sprites = this._getSprites();
   }
 

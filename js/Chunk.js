@@ -408,7 +408,7 @@ export class Chunk {
   }
 
   _loadTilemaps() {
-    const path = "../assets/sprites/";
+    const path = "./assets/sprites/";
     this.tilemapGrass               = this._loadImage(path + "grass.png");
     this.tilemapMain                = this._loadImage(path + "tilemapMain.png");
     this.tilemapJungleGrass         = this._loadImage(path + "jungleGrass.png");
